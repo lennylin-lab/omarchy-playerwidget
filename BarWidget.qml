@@ -69,6 +69,26 @@ BarWidget {
   property bool panelOpen: false
   function close() { panelOpen = false }
 
+  // Bar slot MouseArea sits above widgets and picks the cursor from
+  // moduleClickTargetAt(); without this contract it stays ArrowCursor.
+  property bool interactive: true
+  property bool pressable: hasMedia
+  property bool concealed: false
+  property int _lastLeftPressTime: 0
+
+  function triggerPress(button) {
+    if (!hasMedia || button !== Qt.LeftButton) return
+    var now = Date.now()
+    if (now - _lastLeftPressTime < singleClickTimer.interval) {
+      singleClickTimer.stop()
+      _lastLeftPressTime = 0
+      runAction("playPause")
+    } else {
+      _lastLeftPressTime = now
+      singleClickTimer.restart()
+    }
+  }
+
   // A player can vanish (app closed) while the panel is open — nothing left
   // to control, so the popup would otherwise hang around showing stale art.
   onHasMediaChanged: if (!hasMedia) panelOpen = false
@@ -258,20 +278,14 @@ BarWidget {
     onTriggered: root.panelOpen = !root.panelOpen
   }
 
+  // Bar modulePointer only forwards left clicks to triggerPress; right-click
+  // still has to land here underneath it.
   MouseArea {
     anchors.fill: parent
     hoverEnabled: true
-    acceptedButtons: Qt.LeftButton | Qt.RightButton
-    cursorShape: root.hasMedia ? Qt.PointingHandCursor : Qt.ArrowCursor
+    acceptedButtons: Qt.RightButton
     onClicked: (mouse) => {
-      if (!root.hasMedia) return
-      if (mouse.button === Qt.RightButton) root.showTitle = !root.showTitle
-      else singleClickTimer.restart()
-    }
-    onDoubleClicked: (mouse) => {
-      if (!root.hasMedia || mouse.button !== Qt.LeftButton) return
-      singleClickTimer.stop()
-      root.runAction("playPause")
+      if (root.hasMedia && mouse.button === Qt.RightButton) root.showTitle = !root.showTitle
     }
     onEntered: if (root.bar) root.bar.showTooltip(root, root.hasMedia
       ? (root.title + (root.artist ? " — " + root.artist : "")) : "")
