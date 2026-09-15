@@ -282,12 +282,15 @@ BarWidget {
   // right, and a small media glyph tucked into the card's top-right corner.
   // Wide-and-short rather than tall — the title gets room to breathe on one
   // line instead of wrapping under a big square of art.
-  PopupCard {
+  // KeyboardPanel rather than PopupCard: xdg-popups don't receive keyboard
+  // input until a click routes focus through the parent, so Esc never fired.
+  KeyboardPanel {
     id: popup
     anchorItem: root
     bar: root.bar
     owner: root
     open: root.panelOpen
+    focusTarget: keyCatcher
     contentWidth: popup.fittedContentWidth(Style.space(340))
     contentHeight: popup.fittedContentHeight(layout.implicitHeight)
 
@@ -295,16 +298,10 @@ BarWidget {
     // Keeps a long title from eliding into the corner media glyph.
     readonly property real glyphReserve: Style.space(18)
 
-    onOpenChanged: if (open) Qt.callLater(function() {
-      if (popup.open) keyCatcher.forceActiveFocus()
-    })
-
-    Item {
+    PanelKeyCatcher {
       id: keyCatcher
       anchors.fill: parent
-      focus: true
-      Keys.priority: Keys.BeforeItem
-      Keys.onEscapePressed: root.close()
+      onCloseRequested: root.close()
 
       Row {
         id: layout
