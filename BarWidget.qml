@@ -295,8 +295,16 @@ BarWidget {
     // Keeps a long title from eliding into the corner media glyph.
     readonly property real glyphReserve: Style.space(18)
 
+    onOpenChanged: if (open) Qt.callLater(function() {
+      if (popup.open) keyCatcher.forceActiveFocus()
+    })
+
     Item {
+      id: keyCatcher
       anchors.fill: parent
+      focus: true
+      Keys.priority: Keys.BeforeItem
+      Keys.onEscapePressed: root.close()
 
       Row {
         id: layout
